@@ -44,7 +44,7 @@ use near_performance_metrics_macros::perf;
 use near_primitives::checked_feature;
 use near_primitives::hash::CryptoHash;
 use near_primitives::network::{AnnounceAccount, PeerId};
-use near_primitives::time::Clock;
+use near_primitives::time::{Clock, Time};
 use near_primitives::types::{AccountId, ProtocolVersion};
 use near_primitives::utils::from_timestamp;
 use near_rate_limiter::{ThrottleController, ThrottleToken, ThrottledFrameRead};
@@ -119,11 +119,11 @@ struct ActivePeer {
     /// Number of bytes we've sent to the peer.
     sent_bytes_per_sec: u64,
     /// Last time requested peers.
-    last_time_peer_requested: Instant,
+    last_time_peer_requested: Time,
     /// Last time we received a message from this peer.
-    last_time_received_message: Instant,
+    last_time_received_message: Time,
     /// Time where the connection was established.
-    connection_established_time: Instant,
+    connection_established_time: Time,
     /// Who started connection. Inbound (other) or Outbound (us).
     peer_type: PeerType,
 }
@@ -522,9 +522,9 @@ impl PeerManagerActor {
                 full_peer_info,
                 sent_bytes_per_sec: 0,
                 received_bytes_per_sec: 0,
-                last_time_peer_requested: Clock::instant(),
-                last_time_received_message: Clock::instant(),
-                connection_established_time: Clock::instant(),
+                last_time_peer_requested: Time::now(),
+                last_time_received_message: Time::now(),
+                connection_established_time: Time::now(),
                 peer_type,
             },
         );
@@ -589,7 +589,7 @@ impl PeerManagerActor {
             // Ask for peers list on connection.
             let _ = addr.do_send(SendMessage { message: PeerMessage::PeersRequest });
             if let Some(active_peer) = act.active_peers.get_mut(&target_peer_id) {
-                active_peer.last_time_peer_requested = Clock::instant();
+                active_peer.last_time_peer_requested = Time::now();
             }
 
             if peer_type == PeerType::Outbound {
@@ -872,7 +872,7 @@ impl PeerManagerActor {
         let msg = SendMessage { message: PeerMessage::PeersRequest };
         for (_, active_peer) in self.active_peers.iter_mut() {
             if active_peer.last_time_peer_requested.elapsed() > REQUEST_PEERS_INTERVAL {
-                active_peer.last_time_peer_requested = Clock::instant();
+                active_peer.last_time_peer_requested = Time::now();
                 requests.push(active_peer.addr.send(msg.clone()));
             }
         }

@@ -671,8 +671,8 @@ impl KnownPeerStatus {
 pub struct KnownPeerState {
     pub peer_info: PeerInfo,
     pub status: KnownPeerStatus,
-    pub first_seen: u64,
-    pub last_seen: u64,
+    pub first_seen: UnixTime,
+    pub last_seen: UnixTime,
 }
 
 impl KnownPeerState {
@@ -689,8 +689,8 @@ impl KnownPeerState {
         from_timestamp(self.first_seen)
     }
 
-    pub fn last_seen(&self) -> DateTime<Utc> {
-        from_timestamp(self.last_seen)
+    pub fn last_seen(&self) -> Time {
+        Time::from_unix_timestamp(self.last_seen)
     }
 }
 

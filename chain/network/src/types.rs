@@ -560,7 +560,7 @@ pub enum PeerRequest {
     UpdateEdge((PeerId, u64)),
     RouteBack(Box<RoutedMessageBody>, CryptoHash),
     UpdatePeerInfo(PeerInfo),
-    ReceivedMessage(PeerId, Instant),
+    ReceivedMessage(PeerId, Time),
 }
 
 #[cfg(feature = "deepsize_feature")]
