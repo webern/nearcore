@@ -3,6 +3,7 @@
 //! NOTE: chain-configs is not the best place for `GenesisConfig` since it
 //! contains `RuntimeConfig`, but we keep it here for now until we figure
 //! out the better place.
+use anyhow::Context;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -297,11 +298,12 @@ impl GenesisConfig {
     ///
     /// It panics if file cannot be open or read, or the contents cannot be parsed from JSON to the
     /// GenesisConfig structure.
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Self {
-        let reader = BufReader::new(File::open(path).expect("Could not open genesis config file."));
-        let genesis_config: GenesisConfig =
-            serde_json::from_reader(reader).expect("Failed to deserialize the genesis records.");
-        genesis_config
+    pub fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let file = File::open(path).with_context(|| "Could not open genesis config file.")?;
+        let reader = BufReader::new(file);
+        let genesis_config: GenesisConfig = serde_json::from_reader(reader)
+            .with_context(|| "Failed to deserialize the genesis records.")?;
+        Ok(genesis_config)
     }
 
     /// Writes GenesisConfig to the file.
@@ -496,7 +498,7 @@ impl Genesis {
         P1: AsRef<Path>,
         P2: AsRef<Path>,
     {
-        let config = GenesisConfig::from_file(config_path);
+        let config = GenesisConfig::from_file(config_path).unwrap();
         let records = GenesisRecords::from_file(records_path);
         Self::new(config, records)
     }
