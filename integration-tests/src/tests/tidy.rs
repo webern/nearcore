@@ -19,6 +19,6 @@ fn code_is_formatted() {
 fn project_root() -> PathBuf {
     let dir = env!("CARGO_MANIFEST_DIR");
     let res = PathBuf::from(dir).parent().unwrap().to_owned();
-    assert!(res.join("../../../.github").exists());
+    assert!(res.join("../../../../.github").exists());
     res
 }
