@@ -110,6 +110,7 @@ macro_rules! unwrap_or_error(($obj: expr, $error: expr) => (match $obj {
     }
 }));
 
+/// ActivePeer related code
 /// Contains information relevant to an active peer.
 struct ActivePeer {
     addr: Addr<PeerActor>,
@@ -128,6 +129,57 @@ struct ActivePeer {
     peer_type: PeerType,
 }
 
+/// AdvHelper related code
+#[derive(Default)]
+struct AdvHelper {
+    #[cfg(feature = "test_features")]
+    adv_disable_edge_propagation: bool,
+    #[cfg(feature = "test_features")]
+    adv_disable_edge_signature_verification: bool,
+    #[cfg(feature = "test_features")]
+    adv_disable_edge_pruning: bool,
+}
+
+impl AdvHelper {
+    #[cfg(not(feature = "test_features"))]
+    fn can_broadcast_edges(&self) -> bool {
+        true
+    }
+
+    #[cfg(feature = "test_features")]
+    fn can_broadcast_edges(&self) -> bool {
+        !self.adv_disable_edge_propagation
+    }
+
+    #[cfg(not(feature = "test_features"))]
+    fn adv_disable_edge_pruning(&self) -> bool {
+        false
+    }
+
+    #[cfg(feature = "test_features")]
+    fn adv_disable_edge_pruning(&self) -> bool {
+        self.adv_disable_edge_pruning
+    }
+}
+
+/// IncomingCrutch related code
+// TODO Incoming needs someone to own TcpListener, temporary workaround until there is a better way
+pub struct IncomingCrutch {
+    listener: tokio_stream::wrappers::TcpListenerStream,
+}
+
+impl Stream for IncomingCrutch {
+    type Item = std::io::Result<TcpStream>;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        Stream::poll_next(std::pin::Pin::new(&mut self.listener), cx)
+    }
+}
+
+/// PeerManagerActor related code
 /// Actor that manages peers connections.
 pub struct PeerManagerActor {
     /// Networking configuration.
@@ -171,38 +223,6 @@ pub struct PeerManagerActor {
     peer_counter: Arc<AtomicUsize>,
     /// Used for testing, for disabling features.
     adv_helper: AdvHelper,
-}
-
-#[derive(Default)]
-struct AdvHelper {
-    #[cfg(feature = "test_features")]
-    adv_disable_edge_propagation: bool,
-    #[cfg(feature = "test_features")]
-    adv_disable_edge_signature_verification: bool,
-    #[cfg(feature = "test_features")]
-    adv_disable_edge_pruning: bool,
-}
-
-impl AdvHelper {
-    #[cfg(not(feature = "test_features"))]
-    fn can_broadcast_edges(&self) -> bool {
-        true
-    }
-
-    #[cfg(feature = "test_features")]
-    fn can_broadcast_edges(&self) -> bool {
-        !self.adv_disable_edge_propagation
-    }
-
-    #[cfg(not(feature = "test_features"))]
-    fn adv_disable_edge_pruning(&self) -> bool {
-        false
-    }
-
-    #[cfg(feature = "test_features")]
-    fn adv_disable_edge_pruning(&self) -> bool {
-        self.adv_disable_edge_pruning
-    }
 }
 
 impl PeerManagerActor {
@@ -1455,21 +1475,36 @@ impl PeerManagerActor {
             act.push_network_info_trigger(ctx, interval);
         });
     }
-}
 
-// TODO Incoming needs someone to own TcpListener, temporary workaround until there is a better way
-pub struct IncomingCrutch {
-    listener: tokio_stream::wrappers::TcpListenerStream,
-}
-
-impl Stream for IncomingCrutch {
-    type Item = std::io::Result<TcpStream>;
-
-    fn poll_next(
-        mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        Stream::poll_next(std::pin::Pin::new(&mut self.listener), cx)
+    #[cfg(feature = "protocol_feature_routing_exchange_algorithm")]
+    fn process_ibf_msg(
+        &mut self,
+        ctx: &mut Context<PeerManagerActor>,
+        peer_id: &PeerId,
+        mut ibf_msg: RoutingVersion2,
+        addr: Addr<PeerActor>,
+    ) {
+        let mut edges: Vec<Edge> = Vec::new();
+        std::mem::swap(&mut edges, &mut ibf_msg.edges);
+        self.validate_edges_and_add_to_routing_table(ctx, peer_id.clone(), edges);
+        self.routing_table_addr
+            .send(RoutingTableMessages::ProcessIbfMessage { peer_id: peer_id.clone(), ibf_msg })
+            .into_actor(self)
+            .map(move |response, _act: &mut PeerManagerActor, _ctx| match response {
+                Ok(RoutingTableMessagesResponse::ProcessIbfMessageResponse {
+                    ibf_msg: response_ibf_msg,
+                }) => {
+                    if let Some(response_ibf_msg) = response_ibf_msg {
+                        let _ = addr.do_send(SendMessage {
+                            message: PeerMessage::RoutingTableSyncV2(RoutingSyncV2::Version2(
+                                response_ibf_msg,
+                            )),
+                        });
+                    }
+                }
+                _ => error!(target: "network", "expected ProcessIbfMessageResponse"),
+            })
+            .spawn(ctx);
     }
 }
 
@@ -1549,6 +1584,25 @@ impl Actor for PeerManagerActor {
     }
 }
 
+impl Handler<ActixMessageWrapper<PeerManagerMessageRequest>> for PeerManagerActor {
+    type Result = ActixMessageResponse<PeerManagerMessageResponse>;
+
+    fn handle(
+        &mut self,
+        msg: ActixMessageWrapper<PeerManagerMessageRequest>,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
+        // Unpack throttle controller
+        let (msg, throttle_token) = msg.take();
+
+        let result = self.handle(msg, ctx);
+
+        // TODO(#5155) Add support for DeepSizeOf to result
+        ActixMessageResponse::new(result, ThrottleToken::new(throttle_token.into_inner(), 0))
+    }
+}
+
+/// Code related to handling messages inside `PeerManagerMessageRequest`.
 impl PeerManagerActor {
     #[perf]
     fn handle_msg_network_requests(
@@ -2155,26 +2209,78 @@ impl PeerManagerActor {
             "Fail to update peer store"
         );
     }
-}
 
-impl Handler<ActixMessageWrapper<PeerManagerMessageRequest>> for PeerManagerActor {
-    type Result = ActixMessageResponse<PeerManagerMessageResponse>;
+    /// "Return" true if this message is for this peer and should be sent to the client.
+    /// Otherwise try to route this message to the final receiver and return false.
+    fn handle_msg_routed_from(&mut self, msg: RoutedMessageFrom, ctx: &mut Context<Self>) -> bool {
+        #[cfg(feature = "delay_detector")]
+        let _d = delay_detector::DelayDetector::new(
+            format!("routed message from {}", strum::AsStaticRef::as_static(&msg.msg.body)).into(),
+        );
+        let RoutedMessageFrom { mut msg, from } = msg;
 
-    fn handle(
+        if msg.expect_response() {
+            trace!(target: "network", "Received peer message that requires route back: {}", PeerMessage::Routed(msg.clone()));
+            self.routing_table_view.add_route_back(msg.hash(), from.clone());
+        }
+
+        if self.message_for_me(&msg.target) {
+            // Handle Ping and Pong message if they are for us without sending to client.
+            // i.e. Return false in case of Ping and Pong
+            match &msg.body {
+                RoutedMessageBody::Ping(ping) => self.handle_ping(ctx, ping.clone(), msg.hash()),
+                RoutedMessageBody::Pong(pong) => self.handle_pong(ctx, pong.clone()),
+                _ => return true,
+            }
+
+            false
+        } else {
+            if msg.decrease_ttl() {
+                self.send_signed_message_to_peer(ctx, msg);
+            } else {
+                warn!(target: "network", "Message dropped because TTL reached 0. Message: {:?} From: {:?}", msg, from);
+            }
+            false
+        }
+    }
+
+    fn handle_msg_peer_request(
         &mut self,
-        msg: ActixMessageWrapper<PeerManagerMessageRequest>,
-        ctx: &mut Self::Context,
-    ) -> Self::Result {
-        // Unpack throttle controller
-        let (msg, throttle_token) = msg.take();
-
-        let result = self.handle(msg, ctx);
-
-        // TODO(#5155) Add support for DeepSizeOf to result
-        ActixMessageResponse::new(result, ThrottleToken::new(throttle_token.into_inner(), 0))
+        msg: PeerRequest,
+        ctx: &mut Context<Self>,
+    ) -> PeerResponse {
+        #[cfg(feature = "delay_detector")]
+        let _d =
+            delay_detector::DelayDetector::new(format!("peer request {}", msg.as_ref()).into());
+        match msg {
+            PeerRequest::UpdateEdge((peer, nonce)) => {
+                PeerResponse::UpdatedEdge(self.propose_edge(peer, Some(nonce)))
+            }
+            PeerRequest::RouteBack(body, target) => {
+                trace!(target: "network", "Sending message to route back: {:?}", target);
+                self.send_message_to_peer(
+                    ctx,
+                    RawRoutedMessage { target: AccountOrPeerIdOrHash::Hash(target), body: *body },
+                );
+                PeerResponse::NoResponse
+            }
+            PeerRequest::UpdatePeerInfo(peer_info) => {
+                if let Err(err) = self.peer_store.add_trusted_peer(peer_info, TrustLevel::Direct) {
+                    error!(target: "network", "Fail to update peer store: {}", err);
+                }
+                PeerResponse::NoResponse
+            }
+            PeerRequest::ReceivedMessage(peer_id, last_time_received_message) => {
+                if let Some(active_peer) = self.active_peers.get_mut(&peer_id) {
+                    active_peer.last_time_received_message = last_time_received_message;
+                }
+                PeerResponse::NoResponse
+            }
+        }
     }
 }
 
+/// `PeerManagerActor` public api, which can be called from other Actors.
 impl Handler<PeerManagerMessageRequest> for PeerManagerActor {
     type Result = PeerManagerMessageResponse;
 
@@ -2243,111 +2349,5 @@ impl Handler<PeerManagerMessageRequest> for PeerManagerActor {
                 )
             }
         }
-    }
-}
-
-/// "Return" true if this message is for this peer and should be sent to the client.
-/// Otherwise try to route this message to the final receiver and return false.
-impl PeerManagerActor {
-    fn handle_msg_routed_from(&mut self, msg: RoutedMessageFrom, ctx: &mut Context<Self>) -> bool {
-        #[cfg(feature = "delay_detector")]
-        let _d = delay_detector::DelayDetector::new(
-            format!("routed message from {}", strum::AsStaticRef::as_static(&msg.msg.body)).into(),
-        );
-        let RoutedMessageFrom { mut msg, from } = msg;
-
-        if msg.expect_response() {
-            trace!(target: "network", "Received peer message that requires route back: {}", PeerMessage::Routed(msg.clone()));
-            self.routing_table_view.add_route_back(msg.hash(), from.clone());
-        }
-
-        if self.message_for_me(&msg.target) {
-            // Handle Ping and Pong message if they are for us without sending to client.
-            // i.e. Return false in case of Ping and Pong
-            match &msg.body {
-                RoutedMessageBody::Ping(ping) => self.handle_ping(ctx, ping.clone(), msg.hash()),
-                RoutedMessageBody::Pong(pong) => self.handle_pong(ctx, pong.clone()),
-                _ => return true,
-            }
-
-            false
-        } else {
-            if msg.decrease_ttl() {
-                self.send_signed_message_to_peer(ctx, msg);
-            } else {
-                warn!(target: "network", "Message dropped because TTL reached 0. Message: {:?} From: {:?}", msg, from);
-            }
-            false
-        }
-    }
-}
-
-impl PeerManagerActor {
-    fn handle_msg_peer_request(
-        &mut self,
-        msg: PeerRequest,
-        ctx: &mut Context<Self>,
-    ) -> PeerResponse {
-        #[cfg(feature = "delay_detector")]
-        let _d =
-            delay_detector::DelayDetector::new(format!("peer request {}", msg.as_ref()).into());
-        match msg {
-            PeerRequest::UpdateEdge((peer, nonce)) => {
-                PeerResponse::UpdatedEdge(self.propose_edge(peer, Some(nonce)))
-            }
-            PeerRequest::RouteBack(body, target) => {
-                trace!(target: "network", "Sending message to route back: {:?}", target);
-                self.send_message_to_peer(
-                    ctx,
-                    RawRoutedMessage { target: AccountOrPeerIdOrHash::Hash(target), body: *body },
-                );
-                PeerResponse::NoResponse
-            }
-            PeerRequest::UpdatePeerInfo(peer_info) => {
-                if let Err(err) = self.peer_store.add_trusted_peer(peer_info, TrustLevel::Direct) {
-                    error!(target: "network", "Fail to update peer store: {}", err);
-                }
-                PeerResponse::NoResponse
-            }
-            PeerRequest::ReceivedMessage(peer_id, last_time_received_message) => {
-                if let Some(active_peer) = self.active_peers.get_mut(&peer_id) {
-                    active_peer.last_time_received_message = last_time_received_message;
-                }
-                PeerResponse::NoResponse
-            }
-        }
-    }
-}
-
-#[cfg(feature = "protocol_feature_routing_exchange_algorithm")]
-impl PeerManagerActor {
-    fn process_ibf_msg(
-        &mut self,
-        ctx: &mut Context<PeerManagerActor>,
-        peer_id: &PeerId,
-        mut ibf_msg: RoutingVersion2,
-        addr: Addr<PeerActor>,
-    ) {
-        let mut edges: Vec<Edge> = Vec::new();
-        std::mem::swap(&mut edges, &mut ibf_msg.edges);
-        self.validate_edges_and_add_to_routing_table(ctx, peer_id.clone(), edges);
-        self.routing_table_addr
-            .send(RoutingTableMessages::ProcessIbfMessage { peer_id: peer_id.clone(), ibf_msg })
-            .into_actor(self)
-            .map(move |response, _act: &mut PeerManagerActor, _ctx| match response {
-                Ok(RoutingTableMessagesResponse::ProcessIbfMessageResponse {
-                    ibf_msg: response_ibf_msg,
-                }) => {
-                    if let Some(response_ibf_msg) = response_ibf_msg {
-                        let _ = addr.do_send(SendMessage {
-                            message: PeerMessage::RoutingTableSyncV2(RoutingSyncV2::Version2(
-                                response_ibf_msg,
-                            )),
-                        });
-                    }
-                }
-                _ => error!(target: "network", "expected ProcessIbfMessageResponse"),
-            })
-            .spawn(ctx);
     }
 }
