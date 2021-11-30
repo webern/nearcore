@@ -556,7 +556,7 @@ impl PeerActor {
 
     /// Check whenever we exceeded number of transactions we got since last block.
     /// If so, drop the transaction.
-    fn should_we_drop_msg_without_decoding(&self, msg: &Vec<u8>) -> bool {
+    fn should_we_drop_msg_without_decoding(&self, msg: &[u8]) -> bool {
         if codec::is_forward_transaction(msg).unwrap_or(false) {
             let r = self.txns_since_last_block.load(Ordering::Acquire);
             if r > MAX_TRANSACTIONS_PER_BLOCK_MESSAGE {
@@ -568,7 +568,7 @@ impl PeerActor {
 
     // Checks errors from decoding a message.
     // We may send `HandshakeFailure` to the other peer.
-    fn handle_peer_message_decode_error(&mut self, msg: &Vec<u8>, err: Error) {
+    fn handle_peer_message_decode_error(&mut self, msg: &[u8], err: Error) {
         if let Some(version) = err
             .get_ref()
             .and_then(|err| err.downcast_ref::<HandshakeFailureReason>())
@@ -954,11 +954,10 @@ impl StreamHandler<Result<Vec<u8>, ReasonForBan>> for PeerActor {
                 ))
                 .into_actor(self)
                 .then(|res, act, ctx| {
-                    match res.map(|f| f.as_network_response()) {
-                        Ok(NetworkResponses::BanPeer(reason_for_ban)) => {
-                            act.ban_peer(ctx, reason_for_ban);
-                        }
-                        _ => {}
+                    if let Ok(NetworkResponses::BanPeer(reason_for_ban)) =
+                        res.map(|f| f.as_network_response())
+                    {
+                        act.ban_peer(ctx, reason_for_ban);
                     }
                     actix::fut::ready(())
                 })

@@ -389,25 +389,18 @@ impl PeerManagerActor {
                 }
                 // Check whenever peer needs to be removed when edge is removed.
                 if let Some(other) = edge.other(&self.my_peer_id) {
-                    // We belong to this edge.
-                    if self.active_peers.contains_key(other) {
-                        // This is an active connection.
-                        match edge.edge_type() {
-                            EdgeType::Removed => {
-                                self.maybe_remove_connected_peer(ctx, edge.clone(), other);
-                            }
-                            _ => {}
+                    // Check whenever we belong to this edge.
+                    let on_edge = self.active_peers.contains_key(other);
+                    match (on_edge, edge.edge_type()) {
+                        // We are connected to peer, ask peer whenever we should disconnect.
+                        (true, EdgeType::Removed) => {
+                            self.maybe_remove_connected_peer(ctx, edge, other)
                         }
-                    } else {
-                        match edge.edge_type() {
-                            EdgeType::Added => {
-                                // We are not connected to this peer, but routing table contains
-                                // information that we do. We should wait and remove that peer
-                                // from routing table
-                                self.wait_peer_or_remove(ctx, edge.clone());
-                            }
-                            _ => {}
-                        }
+                        // We are not connected to this peer, but routing table contains
+                        // information that we do. We should wait and remove that peer
+                        // from routing table
+                        (false, EdgeType::Added) => self.wait_peer_or_remove(ctx, edge.clone()),
+                        (false, EdgeType::Removed) | (true, EdgeType::Added) => (),
                     }
                 }
             }
@@ -939,7 +932,12 @@ impl PeerManagerActor {
     // We will broadcast that edge to that peer, and if that peer doesn't reply within specific time,
     // that peer will be removed. However, the connected peer may gives us a new edge indicating
     // that we should in fact be connected to it.
-    fn maybe_remove_connected_peer(&mut self, ctx: &mut Context<Self>, edge: Edge, other: &PeerId) {
+    fn maybe_remove_connected_peer(
+        &mut self,
+        ctx: &mut Context<Self>,
+        edge: &Edge,
+        other: &PeerId,
+    ) {
         let nonce = edge.next();
 
         if let Some(last_nonce) = self.local_peer_pending_update_nonce_request.get(other) {
