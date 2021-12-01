@@ -1,6 +1,6 @@
 use near_primitives::hash::CryptoHash;
 use near_primitives::network::PeerId;
-use near_primitives::time::{Clock, Time};
+use near_primitives::time::{Time};
 use std::collections::{btree_map, BTreeMap, BTreeSet, HashMap};
 use std::time::Duration;
 

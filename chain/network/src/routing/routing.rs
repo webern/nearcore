@@ -8,7 +8,7 @@ use cached::{Cached, SizedCache};
 use near_network_primitives::types::{PeerIdOrHash, Ping, Pong};
 use near_primitives::hash::CryptoHash;
 use near_primitives::network::{AnnounceAccount, PeerId};
-use near_primitives::time::{Clock, Time};
+use near_primitives::time::{Time};
 use near_primitives::types::AccountId;
 use near_store::{ColAccountAnnouncements, Store};
 use std::collections::hash_map::Entry;
