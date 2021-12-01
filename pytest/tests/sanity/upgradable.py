@@ -165,10 +165,14 @@ def test_upgrade() -> None:
     assert 'Failure' not in res['result']['status'], res
 
     # We have seen test failures, where account was not found.
-    time.sleep(1)
+
+    response = nodes[0].get_account(hex_account_id)
+
+    if 'result' not in response or 'amount' not in response['result']:
+        logger.info("got invalid response from node %s" % response)
 
     hex_account_balance = int(
-        nodes[0].get_account(hex_account_id)['result']['amount'])
+        response['result']['amount'])
     assert hex_account_balance == 10**25
 
 
