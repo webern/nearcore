@@ -169,10 +169,9 @@ def test_upgrade() -> None:
     response = nodes[0].get_account(hex_account_id)
 
     if 'result' not in response or 'amount' not in response['result']:
-        logger.info("got invalid response from node %s" % response)
+        logger.error("got invalid response from node %s" % response)
 
-    hex_account_balance = int(
-        response['result']['amount'])
+    hex_account_balance = int(response['result']['amount'])
     assert hex_account_balance == 10**25
 
 
