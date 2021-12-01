@@ -1,4 +1,3 @@
-use std::cmp::max;
 use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -439,7 +438,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_gas_burnt_view: Option<Gas>,
     #[serde(default = "default_num_epochs_to_keep_store_data")]
-    num_epochs_to_keep_store_data: u64,
+    pub num_epochs_to_keep_store_data: u64,
 }
 
 impl Default for Config {
@@ -472,16 +471,19 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn num_epochs_to_keep_store_data(&self) -> u64 {
-        max(MIN_NUM_EPOCHS_TO_KEEP_STORE_DATA, self.num_epochs_to_keep_store_data)
-    }
-
     pub fn from_file(path: &Path) -> Self {
         let mut file = File::open(path)
             .unwrap_or_else(|_| panic!("Could not open config file: `{}`", path.display()));
         let mut content = String::new();
         file.read_to_string(&mut content).expect("Could not read from config file.");
-        Config::from(content.as_str())
+        let config = Config::from(content.as_str());
+        if config.num_epochs_to_keep_store_data < MIN_NUM_EPOCHS_TO_KEEP_STORE_DATA {
+            panic!(
+                "num_epochs_to_keep_store_data: {} is below: {}",
+                config.num_epochs_to_keep_store_data, MIN_NUM_EPOCHS_TO_KEEP_STORE_DATA
+            );
+        }
+        config
     }
 
     pub fn write_to_file(&self, path: &Path) {

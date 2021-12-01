@@ -160,7 +160,7 @@ impl NightshadeRuntime {
             trie_viewer_state_size_limit,
             max_gas_burnt_view,
             None,
-            config.config.num_epochs_to_keep_store_data(),
+            config.config.num_epochs_to_keep_store_data,
         )
     }
 
