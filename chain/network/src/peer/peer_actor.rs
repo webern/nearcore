@@ -44,7 +44,7 @@ use std::io;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::{debug, error, info, trace, warn};
 
 type WriteHalf = tokio::io::WriteHalf<tokio::net::TcpStream>;
@@ -148,7 +148,7 @@ impl PeerActor {
             genesis_id: Default::default(),
             chain_info: Default::default(),
             partial_edge_info,
-            last_time_received_message_update: Clock::instant(),
+            last_time_received_message_update: Time::now(),
             network_metrics,
             txns_since_last_block,
             peer_counter,

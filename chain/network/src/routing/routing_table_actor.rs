@@ -17,8 +17,9 @@ use near_store::db::DBCol::{ColComponentEdges, ColLastComponentNonce, ColPeerCom
 use near_store::{Store, StoreUpdate};
 use std::collections::{HashMap, HashSet};
 use std::mem::swap;
+use std::ops::Sub;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::{debug, trace, warn};
 
 /// `Prune` enum is to specify how often should we prune edges.

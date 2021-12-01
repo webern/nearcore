@@ -8,13 +8,13 @@ use cached::{Cached, SizedCache};
 use near_network_primitives::types::{PeerIdOrHash, Ping, Pong};
 use near_primitives::hash::CryptoHash;
 use near_primitives::network::{AnnounceAccount, PeerId};
-use near_primitives::time::Clock;
+use near_primitives::time::{Clock, Time};
 use near_primitives::types::AccountId;
 use near_store::{ColAccountAnnouncements, Store};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tracing::warn;
 
 const ANNOUNCE_ACCOUNT_CACHE_SIZE: usize = 10_000;
@@ -75,7 +75,7 @@ pub struct RoutingTableView {
     /// Ping received by nonce.
     pong_info: SizedCache<usize, (Pong, usize)>,
     /// List of pings sent for which we haven't received any pong yet.
-    waiting_pong: SizedCache<PeerId, SizedCache<usize, Instant>>,
+    waiting_pong: SizedCache<PeerId, SizedCache<usize, Time>>,
     /// Last nonce sent to each peer through pings.
     last_ping_nonce: SizedCache<PeerId, usize>,
 }
@@ -223,9 +223,9 @@ impl RoutingTableView {
         let mut res = None;
 
         if let Some(nonces) = self.waiting_pong.cache_get_mut(&pong.source) {
-            res = nonces.cache_remove(&(pong.nonce as usize)).map(|sent| {
-                Clock::instant().saturating_duration_since(sent).as_secs_f64() * 1000f64
-            });
+            res = nonces
+                .cache_remove(&(pong.nonce as usize))
+                .map(|sent| Time::now().saturating_duration_since(&sent).as_secs_f64() * 1000f64);
         }
 
         let cnt = self.pong_info.cache_get(&(pong.nonce as usize)).map(|v| v.1).unwrap_or(0);
@@ -244,7 +244,7 @@ impl RoutingTableView {
             self.waiting_pong.cache_get_mut(&target).unwrap()
         };
 
-        entry.cache_set(nonce, Clock::instant());
+        entry.cache_set(nonce, Time::now());
     }
 
     pub fn get_ping(&mut self, peer_id: PeerId) -> usize {

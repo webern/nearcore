@@ -1,7 +1,6 @@
 use actix::dev::{MessageResponse, ResponseChannel};
 use actix::{Actor, Message};
 use borsh::{BorshDeserialize, BorshSerialize};
-use chrono::DateTime;
 #[cfg(feature = "deepsize_feature")]
 use deepsize::DeepSizeOf;
 use near_crypto::{KeyType, PublicKey, SecretKey, Signature};
@@ -17,10 +16,9 @@ use near_primitives::syncing::{
     EpochSyncFinalizationResponse, EpochSyncResponse, ShardStateSyncResponse,
     ShardStateSyncResponseV1,
 };
-use near_primitives::time::{Clock, Utc};
+use near_primitives::time::{Time, UnixTime};
 use near_primitives::transaction::{ExecutionOutcomeWithIdAndProof, SignedTransaction};
 use near_primitives::types::{AccountId, BlockHeight, BlockReference, EpochId, ShardId};
-use near_primitives::utils::{from_timestamp, to_timestamp};
 use near_primitives::views::{FinalExecutionOutcomeView, QueryRequest, QueryResponse};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -677,16 +675,17 @@ pub struct KnownPeerState {
 
 impl KnownPeerState {
     pub fn new(peer_info: PeerInfo) -> Self {
+        let now = Time::now().to_unix_timestamp();
         KnownPeerState {
             peer_info,
             status: KnownPeerStatus::Unknown,
-            first_seen: to_timestamp(Clock::utc()),
-            last_seen: to_timestamp(Clock::utc()),
+            first_seen: now,
+            last_seen: now,
         }
     }
 
-    pub fn first_seen(&self) -> DateTime<Utc> {
-        from_timestamp(self.first_seen)
+    pub fn first_seen(&self) -> Time {
+        Time::from_unix_timestamp(self.first_seen)
     }
 
     pub fn last_seen(&self) -> Time {
