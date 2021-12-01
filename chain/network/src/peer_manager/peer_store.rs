@@ -4,7 +4,7 @@ use near_network_primitives::types::{
     KnownPeerState, KnownPeerStatus, NetworkConfig, ReasonForBan,
 };
 use near_primitives::network::PeerId;
-use near_primitives::time::{Time};
+use near_primitives::time::Time;
 
 use near_store::{ColPeers, Store};
 use rand::seq::SliceRandom;
