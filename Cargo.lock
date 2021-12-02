@@ -2949,10 +2949,8 @@ dependencies = [
 name = "near-primitives"
 version = "0.0.0"
 dependencies = [
- "base64 0.13.0",
  "bencher",
  "borsh 0.9.1",
- "bs58",
  "byteorder",
  "bytesize",
  "chrono",
