@@ -183,8 +183,7 @@ mod test {
     use bytes::{BufMut, BytesMut};
     use near_crypto::{KeyType, SecretKey};
     use near_network_primitives::types::{
-        PeerChainInfoV2, PeerIdOrHash, ReasonForBan, RoutedMessage,
-        RoutedMessageBody,
+        PeerChainInfoV2, PeerIdOrHash, ReasonForBan, RoutedMessage, RoutedMessageBody,
     };
     use near_primitives::block::{Approval, ApprovalInner};
     use near_primitives::hash::{self, CryptoHash};
