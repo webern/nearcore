@@ -175,18 +175,6 @@ pub enum PeerType {
     Outbound,
 }
 
-/// Peer status.
-#[cfg_attr(feature = "deepsize_feature", derive(DeepSizeOf))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum PeerStatus {
-    /// Waiting for handshake.
-    Connecting,
-    /// Ready to go.
-    Ready,
-    /// Banned, should shutdown this peer.
-    Banned(ReasonForBan),
-}
-
 /// Account route description
 #[cfg_attr(feature = "deepsize_feature", derive(DeepSizeOf))]
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Eq, Clone, Debug)]
@@ -1087,7 +1075,6 @@ mod tests {
     #[test]
     fn test_enum_size() {
         assert_size!(PeerType);
-        assert_size!(PeerStatus);
         assert_size!(RoutedMessageBody);
         assert_size!(PeerIdOrHash);
         assert_size!(KnownPeerStatus);
