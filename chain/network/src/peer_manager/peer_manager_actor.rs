@@ -9,10 +9,11 @@ use crate::peer_manager::peer_store::{PeerStore, TrustLevel};
 use crate::routing::edge::SimpleEdge;
 use crate::routing::edge::{Edge, EdgeType, PartialEdgeInfo};
 use crate::routing::edge_validator_actor::EdgeValidatorHelper;
-use crate::routing::routing::{
-    PeerRequestResult, RoutingTableView, DELETE_PEERS_AFTER_TIME, MAX_NUM_PEERS,
-};
+use crate::routing::graph::MAX_NUM_PEERS;
 use crate::routing::routing_table_actor::Prune;
+use crate::routing::routing_table_view::{
+    PeerRequestResult, RoutingTableView, DELETE_PEERS_AFTER_TIME,
+};
 use crate::stats::metrics;
 use crate::stats::metrics::NetworkMetrics;
 #[cfg(feature = "test_features")]

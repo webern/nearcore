@@ -2,7 +2,8 @@ use crate::common::message_wrapper::{ActixMessageResponse, ActixMessageWrapper};
 use crate::metrics;
 use crate::routing::edge::{Edge, EdgeType};
 use crate::routing::edge_validator_actor::EdgeValidatorActor;
-use crate::routing::routing::{Graph, SAVE_PEERS_MAX_TIME};
+use crate::routing::routing_table_view::SAVE_PEERS_MAX_TIME;
+use crate::routing::Graph;
 use crate::types::{StopMsg, ValidateEdgeList};
 use actix::dev::MessageResponse;
 use actix::{
