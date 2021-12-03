@@ -11,6 +11,7 @@ use near_primitives::network::{AnnounceAccount, PeerId};
 use near_primitives::time::Clock;
 use near_primitives::types::AccountId;
 use near_store::{ColAccountAnnouncements, Store};
+use std::cmp::max;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
@@ -136,17 +137,11 @@ impl RoutingTableView {
                 .collect::<Vec<_>>();
 
             // Neighbor with minimum and maximum nonce respectively.
-            let min_v = nonce_peer.iter().min().cloned().unwrap();
-            let max_v = nonce_peer.into_iter().max().unwrap();
+            let (mut min_v, next_hop) = nonce_peer.iter().min().cloned().unwrap();
+            let (max_v, _) = nonce_peer.into_iter().max().unwrap();
 
-            if min_v.0 + ROUND_ROBIN_MAX_NONCE_DIFFERENCE_ALLOWED < max_v.0 {
-                self.route_nonce
-                    .put(min_v.1.clone(), max_v.0 - ROUND_ROBIN_MAX_NONCE_DIFFERENCE_ALLOWED);
-            }
-
-            let next_hop = min_v.1;
-            let nonce = self.route_nonce.get(next_hop).cloned();
-            self.route_nonce.put(next_hop.clone(), nonce.map_or(1, |nonce| nonce + 1));
+            min_v = max(min_v, max_v.saturating_sub(ROUND_ROBIN_MAX_NONCE_DIFFERENCE_ALLOWED));
+            self.route_nonce.put(next_hop.clone(), min_v + 1);
             Ok(next_hop.clone())
         } else {
             Err(FindRouteError::PeerNotFound)
