@@ -176,14 +176,14 @@ pub(crate) fn is_forward_transaction(bytes: &[u8]) -> Option<bool> {
 mod test {
     use crate::peer::codec::{is_forward_transaction, Codec, NETWORK_MESSAGE_MAX_SIZE_BYTES};
     use crate::routing::edge::PartialEdgeInfo;
-    use crate::types::{Handshake, HandshakeFailureReason, PeerMessage, SyncData};
+    use crate::types::{Handshake, PeerMessage, SyncData};
     use crate::PeerInfo;
     use borsh::BorshDeserialize;
     use borsh::BorshSerialize;
     use bytes::{BufMut, BytesMut};
-    use near_crypto::{KeyType, PublicKey, SecretKey};
+    use near_crypto::{KeyType, SecretKey};
     use near_network_primitives::types::{
-        PeerChainInfo, PeerChainInfoV2, PeerIdOrHash, ReasonForBan, RoutedMessage,
+        PeerChainInfoV2, PeerIdOrHash, ReasonForBan, RoutedMessage,
         RoutedMessageBody,
     };
     use near_primitives::block::{Approval, ApprovalInner};

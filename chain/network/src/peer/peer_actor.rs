@@ -19,7 +19,7 @@ use borsh::BorshSerialize;
 use lru::LruCache;
 use near_crypto::Signature;
 use near_network_primitives::types::{
-    Ban, NetworkViewClientMessages, NetworkViewClientResponses, PeerChainInfo, PeerChainInfoV2,
+    Ban, NetworkViewClientMessages, NetworkViewClientResponses, PeerChainInfoV2,
     PeerIdOrHash, PeerManagerRequest, PeerStatsResult, PeerStatus, PeerType, QueryPeerStats,
     ReasonForBan, RoutedMessage, RoutedMessageBody, RoutedMessageFrom, StateResponseInfo,
     UPDATE_INTERVAL_LAST_TIME_RECEIVED_MESSAGE,
@@ -662,7 +662,7 @@ impl StreamHandler<Result<Vec<u8>, ReasonForBan>> for PeerActor {
         if self.should_we_drop_msg_without_decoding(&msg) {
             return;
         }
-        let mut peer_msg = match PeerMessage::try_from_slice(&msg) {
+        let peer_msg = match PeerMessage::try_from_slice(&msg) {
             Ok(peer_msg) => peer_msg,
             Err(err) => {
                 // This may send `HandshakeFailure` to the other peer.

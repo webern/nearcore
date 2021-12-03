@@ -13,7 +13,7 @@ use futures::FutureExt;
 use near_network_primitives::types::{
     AccountIdOrPeerTrackingShard, AccountOrPeerIdOrHash, Ban, InboundTcpConnect, KnownProducer,
     OutboundTcpConnect, PartialEncodedChunkForwardMsg, PartialEncodedChunkRequestMsg,
-    PartialEncodedChunkResponseMsg, PeerChainInfo, PeerChainInfoV2, PeerType, Ping, Pong,
+    PartialEncodedChunkResponseMsg, PeerChainInfoV2, PeerType, Ping, Pong,
     ReasonForBan, RoutedMessage, RoutedMessageBody, RoutedMessageFrom, StateResponseInfo,
 };
 use near_primitives::block::{Approval, ApprovalMessage, Block, BlockHeader, GenesisId};
