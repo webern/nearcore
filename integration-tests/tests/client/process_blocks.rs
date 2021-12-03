@@ -1575,15 +1575,21 @@ fn test_gc_after_state_sync() {
     assert!(env.clients[1].chain.clear_data(tries, 2).is_ok());
 }
 
+/// This tests the `num_epochs_to_keep_store_data` setting, which specifies the number of epochs
+/// to keep.
+///
+/// For this test, we set epoch length to `128`, and `num_epochs_to_keep_store_data` to 10.
+/// This tests shows, we keep 9 full epochs, and one partial epoch with `epoch_length`-`100` blocks.
+/// I know it's weird, right?
 #[test]
 fn test_num_blocks_in_storage_config_setting() {
     let epoch_length = 128;
-    // TODO - figured out how to change `num_epochs_to_keep_store_data = 10`
+    let num_epochs_to_keep_store_data = 10;
+
     let mut genesis = Genesis::test(vec!["test0".parse().unwrap(), "test1".parse().unwrap()], 1);
     genesis.config.epoch_length = epoch_length;
     let mut chain_genesis = ChainGenesis::test();
     chain_genesis.epoch_length = epoch_length;
-    let num_epochs_to_keep_store_data = 10;
     let mut env = TestEnv::builder(chain_genesis)
         .clients_count(2)
         .runtime_adapters(create_nightshade_runtimes_with_num_epochs(
@@ -1592,17 +1598,17 @@ fn test_num_blocks_in_storage_config_setting() {
             Some(num_epochs_to_keep_store_data),
         ))
         .build();
-    for i in 1..epoch_length * (num_epochs_to_keep_store_data) + 2 {
+    for i in 1..epoch_length * (num_epochs_to_keep_store_data + 1) + 2 {
         let block = env.clients[0].produce_block(i).unwrap().unwrap();
         env.process_block(0, block.clone(), Provenance::PRODUCED);
         env.process_block(1, block, Provenance::NONE);
     }
     // Check for GC'ed blocks.
-    for i in 1..100 {
+    for i in 1..100 + epoch_length {
         assert!(env.clients[0].chain.get_block_by_height(i).is_err());
     }
     // Check whenever we still keep blocks.
-    for i in 101..epoch_length * (num_epochs_to_keep_store_data) + 2 {
+    for i in epoch_length + 101..epoch_length * (num_epochs_to_keep_store_data) + 2 {
         env.clients[0].chain.get_block_by_height(i).unwrap();
     }
 }
