@@ -4,7 +4,7 @@ use crate::peer::tracker::Tracker;
 use crate::routing::edge::{Edge, PartialEdgeInfo};
 use crate::stats::metrics::{self, NetworkMetrics};
 use crate::types::{
-    Handshake, HandshakeFailureReason, HandshakeV2, NetworkClientMessages, NetworkClientResponses,
+    Handshake, HandshakeFailureReason, NetworkClientMessages, NetworkClientResponses,
     NetworkRequests, NetworkResponses, PeerManagerMessageRequest, PeerMessage, PeerRequest,
     PeerResponse, PeersRequest, PeersResponse, RegisterPeer, RegisterPeerResponse, SendMessage,
     Unregister,
@@ -234,14 +234,6 @@ impl PeerActor {
                             act.other_peer_id().unwrap().clone(),
                             act.my_node_info.addr_port(),
                             PeerChainInfoV2 { genesis_id, height, tracked_shards, archival },
-                            act.partial_edge_info.as_ref().unwrap().clone(),
-                        )),
-                        34..=38 => PeerMessage::HandshakeV2(HandshakeV2::new(
-                            act.protocol_version,
-                            act.my_node_id().clone(),
-                            act.other_peer_id().unwrap().clone(),
-                            act.my_node_info.addr_port(),
-                            PeerChainInfo { genesis_id, height, tracked_shards },
                             act.partial_edge_info.as_ref().unwrap().clone(),
                         )),
                         _ => {
@@ -482,7 +474,7 @@ impl PeerActor {
                 NetworkClientMessages::EpochSyncFinalizationResponse(peer_id, response)
             }
             PeerMessage::Handshake(_)
-            | PeerMessage::HandshakeV2(_)
+            | PeerMessage::Unused
             | PeerMessage::HandshakeFailure(_, _)
             | PeerMessage::PeersRequest
             | PeerMessage::PeersResponse(_)
@@ -711,10 +703,6 @@ impl StreamHandler<Result<Vec<u8>, ReasonForBan>> for PeerActor {
             NetworkMetrics::peer_message_bytes_rx(peer_msg.msg_variant()).as_ref(),
             msg.len() as u64,
         );
-
-        if let PeerMessage::HandshakeV2(handshake) = peer_msg {
-            peer_msg = PeerMessage::Handshake(handshake.into());
-        }
 
         match (self.peer_type, self.peer_status, peer_msg) {
             (_, _, PeerMessage::HandshakeFailure(peer_info, reason)) => {
