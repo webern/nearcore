@@ -115,10 +115,61 @@ Those edges are then stored to disk.
 ```
 
 ## 8.4 Step 4
+
 `PeerManagerActor` received `RoutingTableUpdateResponse` and then:
 - updates local copy of`peer_forwarding`, used for routing messages.
 - removes `local_edges_to_remove` from `local_edges_info`.
 - bans peers, who sent us invalid edges.
+ 
+# 10. Message transportation layers.
+
+This section describes different protocols of sending messages currently used in `Near`
+
+## 10.1 Messages between Actors.
+
+`Near` is build on `Actix`'s `actor` framework. (https://actix.rs/book/actix/sec-2-actor.html)
+Usually each actor runs on its own dedicated thread.
+Only messages implementing `actix::Message`, can be sent using between threads.
+
+We should not leak implementation details into the spec.
+
+On example of such message is `PeersRequest` :
+```
+pub struct PeersRequest {}
+impl actix::Message for PeersRequest {
+    type Result = PeerRequestResult;
+}
+pub struct PeerRequestResult {
+    pub peers: Vec<PeerInfo>,
+}
+```
+
+## 10.2 Messages sent through TCP
+Near is using `borsh` serialization to exchange messages between nodes (See https://borsh.io/).
+Only messages implementing `BorshSerialize`, `BorshDeserialize` can be sent.
+
+Here is an example of on such message:
+```rust
+#[derive(BorshSerialize, BorshDeserialize)]
+pub struct SyncData {
+    pub(crate) edges: Vec<Edge>,
+    pub(crate) accounts: Vec<AnnounceAccount>,
+}
+```
+
+## 10.3 Messages sent/received through `chain/jsonrpc`
+Near runs a `json REST server`. (See `actix_web::HttpServer`).
+All messages sent and received must implement `serde::Serialize` and `serde::Deserialize`.
+
+`StreamerMessage` is a good example:
+```rust
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct StreamerMessage {
+    pub block: views::BlockView,
+    pub shards: Vec<IndexerShard>,
+    pub state_changes: views::StateChangesView,
+}
+```
 
 # 11. Code flow - routing a message
 This is the example of the message that is being sent between nodes (`RawRoutedMessage`) (https://github.com/near/nearcore/blob/fa8749dc60fe0de8e94c3046571731c622326e9f/chain/network-primitives/src/types.rs#L362)
@@ -161,3 +212,4 @@ To store components, we have the following columns in the DB.
 ### 12.2 Storage of `account_id` to `peer_id` mapping
 
 `ColAccountAnouncements` -> Stores a mapping from `account_id` to tuple (`account_id`, `peer_id`, `epoch_id`, `signature`).
+
