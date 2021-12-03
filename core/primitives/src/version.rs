@@ -22,7 +22,7 @@ pub const DB_VERSION: DbVersion = 30;
 pub use near_primitives_core::types::ProtocolVersion;
 
 /// Oldest supported version by this client.
-pub const OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION: ProtocolVersion = 34;
+pub const OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION: ProtocolVersion = 39;
 
 /// Minimum gas price proposed in NEP 92 and the associated protocol version
 pub const MIN_GAS_PRICE_NEP_92: Balance = 1_000_000_000;
