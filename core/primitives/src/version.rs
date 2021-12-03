@@ -21,9 +21,6 @@ pub const DB_VERSION: DbVersion = 30;
 /// Protocol version type.
 pub use near_primitives_core::types::ProtocolVersion;
 
-/// Oldest supported version by this client.
-pub const OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION: ProtocolVersion = 34;
-
 /// Minimum gas price proposed in NEP 92 and the associated protocol version
 pub const MIN_GAS_PRICE_NEP_92: Balance = 1_000_000_000;
 pub const MIN_PROTOCOL_VERSION_NEP_92: ProtocolVersion = 31;
@@ -143,9 +140,19 @@ pub enum ProtocolFeature {
     AccessKeyNonceForImplicitAccounts,
 }
 
-/// Current latest stable version of the protocol.
+/// Oldest supported version by this client on the network protocol layer.
+/// That is, during handshake negotiation, connection will be rejected if below this version.
+/// This should be updated updating `PROTOCOL_VERSION` below.
+/// The change should be issued once all notes on `MAINNET` vote to use newer version,
+/// that is, we commit to using new version.
+pub const NETWORK_LAYER_PROTOCOL_VERSION: ProtocolVersion = 39;
+
+/// Current latest stable version of the protocol on the chain layer.
 /// Some features (e. g. FixStorageUsage) require that there is at least one epoch with exactly
 /// the corresponding version
+/// Note, we should update `OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION` after updating
+/// `PROTOCOL_VERSION`.
+/// TODO: Rename to `CHAIN_PROTOCOL_VERSION`.
 #[cfg(not(feature = "nightly_protocol"))]
 pub const PROTOCOL_VERSION: ProtocolVersion = 49;
 
