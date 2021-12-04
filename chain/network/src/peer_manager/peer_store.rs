@@ -177,7 +177,7 @@ impl PeerStore {
         }
     }
 
-    /// Find a random subset of peers.
+    /// Find a random subset of peers based on filter.
     fn find_peers<F>(&self, filter: F, count: usize) -> Vec<PeerInfo>
     where
         F: FnMut(&&KnownPeerState) -> bool,
