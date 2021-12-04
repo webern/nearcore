@@ -30,8 +30,6 @@ use actix::{
     Actor, ActorFuture, Addr, Arbiter, AsyncContext, Context, ContextFutureSpawner, Handler,
     Recipient, Running, StreamHandler, WrapFuture,
 };
-use futures::task::Poll;
-use futures::{future, Stream, StreamExt};
 use near_network_primitives::types::{
     AccountOrPeerIdOrHash, Ban, BlockedPorts, InboundTcpConnect, KnownPeerState, KnownPeerStatus,
     KnownProducer, NetworkConfig, NetworkViewClientMessages, NetworkViewClientResponses,
@@ -54,12 +52,12 @@ use rand::thread_rng;
 use std::cmp;
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
-use std::pin::Pin;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Semaphore;
+use tokio_stream::StreamExt;
 use tokio_util::sync::PollSemaphore;
 use tracing::{debug, error, info, trace, warn};
 
@@ -165,8 +163,6 @@ pub struct PeerManagerActor {
     /// Shared counter across all PeerActors, which counts number of `RoutedMessageBody::ForwardTx`
     /// messages sincce last block.
     txns_since_last_block: Arc<AtomicUsize>,
-    /// Number of incoming connections, that were not established yet; used for rate limiting.
-    pending_incoming_connections_counter: Arc<AtomicUsize>,
     /// Number of active peers, used for rate limiting.
     peer_counter: Arc<AtomicUsize>,
     /// Used for testing, for disabling features.
@@ -242,7 +238,6 @@ impl PeerManagerActor {
             network_metrics: NetworkMetrics::new(),
             routing_table_addr,
             txns_since_last_block,
-            pending_incoming_connections_counter: Arc::new(AtomicUsize::new(0)),
             peer_counter: Arc::new(AtomicUsize::new(0)),
             adv_helper: AdvHelper::default(),
         })
@@ -778,10 +773,10 @@ impl PeerManagerActor {
             PeerActor::add_stream(
                 ThrottledFrameRead::new(read, Codec::default(), rate_limiter.clone(), semaphore)
                     .take_while(|x| match x {
-                        Ok(_) => future::ready(true),
+                        Ok(_) => true,
                         Err(e) => {
                             warn!(target: "network", "Peer stream error: {:?}", e);
-                            future::ready(false)
+                            false
                         }
                     })
                     .map(Result::unwrap),
@@ -890,13 +885,13 @@ impl PeerManagerActor {
                 requests.push(active_peer.addr.send(msg.clone()));
             }
         }
-        ctx.spawn(async move {
+        async move {
             while let Some(response) = requests.next().await {
                 if let Err(e) = response {
                     debug!(target: "network", "Failed sending broadcast message(query_active_peers): {}", e);
                 }
             }
-        }.into_actor(self));
+        }.into_actor(self).spawn(ctx);
     }
 
     #[cfg(all(feature = "test_features", feature = "protocol_feature_routing_exchange_algorithm"))]
@@ -1230,13 +1225,13 @@ impl PeerManagerActor {
         let mut requests: futures::stream::FuturesUnordered<_> =
             self.active_peers.values().map(|peer| peer.addr.send(Arc::clone(&msg))).collect();
 
-        ctx.spawn(async move {
+        async move {
             while let Some(response) = requests.next().await {
                 if let Err(e) = response {
                     debug!(target: "network", "Failed sending broadcast message(broadcast_message): {}", e);
                 }
             }
-        }.into_actor(self));
+        }.into_actor(self).spawn(ctx);
     }
 
     fn announce_account(&mut self, ctx: &mut Context<Self>, announce_account: AnnounceAccount) {
@@ -1479,22 +1474,6 @@ impl PeerManagerActor {
     }
 }
 
-// TODO Incoming needs someone to own TcpListener, temporary workaround until there is a better way
-pub struct IncomingCrutch {
-    listener: tokio_stream::wrappers::TcpListenerStream,
-}
-
-impl Stream for IncomingCrutch {
-    type Item = std::io::Result<TcpStream>;
-
-    fn poll_next(
-        mut self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        Stream::poll_next(std::pin::Pin::new(&mut self.listener), cx)
-    }
-}
-
 impl Actor for PeerManagerActor {
     type Context = Context<Self>;
 
@@ -1503,38 +1482,32 @@ impl Actor for PeerManagerActor {
         if let Some(server_addr) = self.config.addr {
             // TODO: for now crashes if server didn't start.
 
-            ctx.spawn(TcpListener::bind(server_addr).into_actor(self).then(
-                move |listener, act, ctx| {
-                    let listener = listener.unwrap();
-                    let incoming = IncomingCrutch {
-                        listener: tokio_stream::wrappers::TcpListenerStream::new(listener),
-                    };
-                    info!(target: "stats", "Server listening at {}@{}", act.my_peer_id, server_addr);
-                    let pending_incoming_connections_counter =
-                        act.pending_incoming_connections_counter.clone();
-                    let peer_counter = act.peer_counter.clone();
-                    let max_num_peers: usize = act.config.max_num_peers as usize;
+            debug!(target: "network", message = "starting server", at = ?server_addr);
+            let address = ctx.address();
 
-                    ctx.add_message_stream(incoming.filter_map(move |conn| {
-                        if let Ok(conn) = conn {
-                            if pending_incoming_connections_counter.load(Ordering::SeqCst)
-                                + peer_counter.load(Ordering::SeqCst)
-                                < max_num_peers + LIMIT_PENDING_PEERS
-                            {
-                                pending_incoming_connections_counter.fetch_add(1, Ordering::SeqCst);
-                                return future::ready(Some(
-                                    PeerManagerMessageRequest::InboundTcpConnect(
-                                        InboundTcpConnect::new(conn),
-                                    ),
-                                ));
-                            }
-                        }
+            async move {
+                let listener = TcpListener::bind(server_addr).await.ok();
+                let listener = if let Some(listener) = listener {
+                    listener
+                } else {
+                    return;
+                };
 
-                        future::ready(None)
-                    }));
-                    actix::fut::ready(())
-                },
-            ));
+                loop {
+                    let (conn, client_addr) =
+                        if let Ok((conn, client_addr)) = listener.accept().await {
+                            (conn, client_addr)
+                        } else {
+                            return;
+                        };
+                    address.do_send(PeerManagerMessageRequest::InboundTcpConnect(
+                        InboundTcpConnect::new(conn),
+                    ));
+                    debug!(target: "network", message = "new connection", from = ?client_addr);
+                }
+            }
+            .into_actor(self)
+            .spawn(ctx);
         }
 
         // Periodically push network information to client.
@@ -2002,7 +1975,6 @@ impl PeerManagerActor {
             // TODO(1896): Gracefully drop inbound connection for other peer.
             debug!(target: "network", "Inbound connection dropped (network at max capacity).");
         }
-        self.pending_incoming_connections_counter.fetch_sub(1, Ordering::SeqCst);
     }
 
     #[perf]
@@ -2268,7 +2240,11 @@ impl PeerManagerActor {
                 PeerManagerMessageResponse::OutboundTcpConnect(())
             }
             PeerManagerMessageRequest::InboundTcpConnect(msg) => {
-                self.handle_msg_inbound_tcp_connect(msg, ctx);
+                if self.peer_counter.load(Ordering::SeqCst)
+                    < self.config.max_num_peers as usize + LIMIT_PENDING_PEERS
+                {
+                    self.handle_msg_inbound_tcp_connect(msg, ctx);
+                }
                 PeerManagerMessageResponse::InboundTcpConnect(())
             }
             PeerManagerMessageRequest::Unregister(msg) => {
