@@ -177,12 +177,13 @@ impl PeerStore {
         }
     }
 
+    /// Find a random subset of peers.
     fn find_peers<F>(&self, filter: F, count: usize) -> Vec<PeerInfo>
     where
         F: FnMut(&&KnownPeerState) -> bool,
     {
         let peers = self.peer_states.values().filter(filter).map(|p| &p.peer_info);
-        if count == 0 {
+        if count == 0 || count == usize::MAX {
             return peers.cloned().collect();
         }
         let peers: Vec<&PeerInfo> = peers.collect();
@@ -201,7 +202,7 @@ impl PeerStore {
                     && !ignore_fn(p)
                     && p.peer_info.addr.is_some()
             },
-            0,
+            usize::MAX,
         )
     }
 
