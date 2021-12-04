@@ -177,16 +177,16 @@ impl PeerStore {
         }
     }
 
-    fn find_peers<F>(&self, mut filter: F, count: usize) -> Vec<PeerInfo>
+    fn find_peers<F>(&self, filter: F, count: usize) -> Vec<PeerInfo>
     where
-        F: FnMut(&KnownPeerState) -> bool,
+        F: FnMut(&&KnownPeerState) -> bool,
     {
-        let peers = self.peer_states.values().filter(|&v| filter(v)).map(|p| &p.peer_info);
+        let peers = self.peer_states.values().filter(filter).map(|p| &p.peer_info);
         if count == 0 {
             return peers.cloned().collect();
         }
         let peers: Vec<&PeerInfo> = peers.collect();
-        peers.choose_multiple(&mut thread_rng(), count).map(|&e| e.clone()).collect::<Vec<_>>()
+        peers.choose_multiple(&mut thread_rng(), count).cloned().cloned().collect::<Vec<_>>()
     }
 
     /// Return unconnected or peers with unknown status that we can try to connect to.
