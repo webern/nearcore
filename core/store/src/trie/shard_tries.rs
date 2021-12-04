@@ -112,7 +112,7 @@ impl ShardTries {
         shard_uid: ShardUId,
         store_update: &mut StoreUpdate,
     ) -> Result<(), StorageError> {
-        store_update.tries = Some(tries.clone());
+        store_update.tries = Some(tries);
         for TrieRefcountChange { trie_node_or_value_hash, trie_node_or_value, rc } in
             deletions.iter()
         {
@@ -123,7 +123,7 @@ impl ShardTries {
             store_update.update_refcount(
                 DBCol::ColState,
                 key.as_ref(),
-                &trie_node_or_value,
+                trie_node_or_value,
                 -(*rc as i64),
             );
         }
@@ -147,7 +147,7 @@ impl ShardTries {
             store_update.update_refcount(
                 DBCol::ColState,
                 key.as_ref(),
-                &trie_node_or_value,
+                trie_node_or_value,
                 *rc as i64,
             );
         }
