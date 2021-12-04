@@ -187,7 +187,7 @@ impl PeerStore {
             return peers.cloned().collect();
         }
         let peers: Vec<&PeerInfo> = peers.collect();
-        peers.choose_multiple(&mut thread_rng(), count).cloned().cloned().collect::<Vec<_>>()
+        peers.choose_multiple(&mut thread_rng(), count).cloned().cloned().collect()
     }
 
     /// Return unconnected or peers with unknown status that we can try to connect to.
