@@ -181,16 +181,13 @@ impl PeerStore {
     where
         F: FnMut(&KnownPeerState) -> bool,
     {
-        let mut peers = self
-            .peer_states
-            .values()
-            .filter_map(|p| if filter(p) { Some(p.peer_info.clone()) } else { None })
-            .collect::<Vec<_>>();
+        let peers = self.peer_states.values().filter(|&v| filter(v)).map(|p| &p.peer_info);
         if count == 0 {
-            return peers;
+            return peers.cloned().collect();
         }
+        let mut peers: Vec<&PeerInfo> = peers.collect();
         peers.shuffle(&mut thread_rng());
-        peers.iter().take(count as usize).cloned().collect::<Vec<_>>()
+        peers.iter().take(count as usize).map(|&e| e.clone()).collect::<Vec<_>>()
     }
 
     /// Return unconnected or peers with unknown status that we can try to connect to.
