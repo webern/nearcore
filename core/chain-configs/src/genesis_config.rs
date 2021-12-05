@@ -9,6 +9,7 @@ use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::{fmt, io};
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use num_rational::Rational;
 use serde::de::{self, DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor};
@@ -298,7 +299,7 @@ impl GenesisConfig {
     ///
     /// It panics if file cannot be open or read, or the contents cannot be parsed from JSON to the
     /// GenesisConfig structure.
-    pub fn from_file<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = File::open(path).with_context(|| "Could not open genesis config file.")?;
         let reader = BufReader::new(file);
         let genesis_config: GenesisConfig = serde_json::from_reader(reader)

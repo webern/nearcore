@@ -832,10 +832,10 @@ pub fn init_configs(
             .with_context(|| anyhow!("Failed to read config {:?}", &dir))?;
         let file_path = dir.join(&config.genesis_file);
         let genesis = GenesisConfig::from_file(&file_path).with_context(move || {
-            format!("Failed to read genesis config {:?}/{:?}", dir, config.genesis_file)
+            anyhow!("Failed to read genesis config {:?}/{:?}", dir, config.genesis_file)
         })?;
-        return Err(
-            anyhow!("Config is already downloaded: {} with chain-id = {}. Use 'cargo run -p neard -- unsafe_reset_all' to clear the folder.", file_path.display(), genesis.chain_id),
+        return Err(anyhow!("Config is already downloaded: {} with chain-id = {}. Use 'cargo run -p neard -- unsafe_reset_all' to clear the folder.", 
+                file_path.display(), genesis.chain_id),
         );
     }
 
@@ -846,11 +846,11 @@ pub fn init_configs(
 
     if let Some(url) = download_config_url {
         download_config(&url.to_string(), &dir.join(CONFIG_FILENAME));
-        config = Config::from_file(&dir.join(CONFIG_FILENAME)).unwrap();
+        config = Config::from_file(&dir.join(CONFIG_FILENAME))?;
     } else if should_download_config {
         let url = get_config_url(&chain_id);
         download_config(&url, &dir.join(CONFIG_FILENAME));
-        config = Config::from_file(&dir.join(CONFIG_FILENAME)).unwrap();
+        config = Config::from_file(&dir.join(CONFIG_FILENAME))?;
     }
 
     if let Some(nodes) = boot_nodes {
@@ -864,7 +864,7 @@ pub fn init_configs(
     match chain_id.as_ref() {
         "mainnet" => {
             if test_seed.is_some() {
-                panic!("Test seed is not supported for MainNet");
+                return Err(anyhow!("Test seed is not supported for MainNet"));
             }
             config.telemetry.endpoints.push(MAINNET_TELEMETRY_URL.to_string());
             config.write_to_file(&dir.join(CONFIG_FILENAME));
@@ -874,8 +874,7 @@ pub fn init_configs(
                 generate_validator_key(account_id, &dir.join(config.validator_key_file));
             }
 
-            let network_signer =
-                InMemorySigner::from_random("node".parse().unwrap(), KeyType::ED25519);
+            let network_signer = InMemorySigner::from_random("node".parse()?, KeyType::ED25519);
             network_signer.write_to_file(&dir.join(config.node_key_file));
 
             genesis.to_file(&dir.join(config.genesis_file));
@@ -883,7 +882,7 @@ pub fn init_configs(
         }
         "testnet" | "betanet" => {
             if test_seed.is_some() {
-                panic!("Test seed is not supported for official TestNet");
+                return Err(anyhow!("Test seed is not supported for official TestNet"));
             }
             config.telemetry.endpoints.push(NETWORK_TELEMETRY_URL.replace("{}", &chain_id));
             config.write_to_file(&dir.join(CONFIG_FILENAME));
@@ -892,14 +891,13 @@ pub fn init_configs(
                 generate_validator_key(account_id, &dir.join(config.validator_key_file));
             }
 
-            let network_signer =
-                InMemorySigner::from_random("node".parse().unwrap(), KeyType::ED25519);
+            let network_signer = InMemorySigner::from_random("node".parse()?, KeyType::ED25519);
             network_signer.write_to_file(&dir.join(config.node_key_file));
 
             // download genesis from s3
             let genesis_path = dir.join("genesis.json");
             let mut genesis_path_str =
-                genesis_path.to_str().expect("Genesis path must be initialized");
+                genesis_path.to_str().with_context(|| "Genesis path must be initialized")?;
 
             if let Some(url) = download_genesis_url {
                 download_genesis(&url.to_string(), &genesis_path);
@@ -942,8 +940,7 @@ pub fn init_configs(
             };
             signer.write_to_file(&dir.join(config.validator_key_file));
 
-            let network_signer =
-                InMemorySigner::from_random("node".parse().unwrap(), KeyType::ED25519);
+            let network_signer = InMemorySigner::from_random("node".parse()?, KeyType::ED25519);
             network_signer.write_to_file(&dir.join(config.node_key_file));
             let mut records = vec![];
             add_account_with_key(

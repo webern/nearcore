@@ -2747,6 +2747,7 @@ name = "near-indexer"
 version = "0.0.0"
 dependencies = [
  "actix",
+ "anyhow",
  "async-recursion",
  "futures",
  "near-chain-configs",
