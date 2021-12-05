@@ -1,3 +1,8 @@
+/// `network_protocol.rs` contains types which are part of network protocol.
+/// We need to maintain backward compatibility in network protocol.
+/// All changes to this file should be reviewed.
+///
+/// TODO: - document all types in this file
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_crypto::Signature;
 use near_primitives::block::{Approval, GenesisId};

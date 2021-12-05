@@ -1,3 +1,13 @@
+/// Contains files used for a few different purposes:
+/// - Changes related to network config - TODO - move to another file
+/// - actix messages - used for communicating with `PeerManagerActor` - TODO move to another file
+/// - internal types used by `peer-store` only - TODO move to `peer_store.rs`
+/// - some types used for different purposes that don't meet any of the criteria above
+/// - unused code - TODO remove?
+/// - Some types types that are neither of the above
+///
+/// NOTE:
+/// - We also export publicly types from `crate::network_protocol`
 use actix::dev::{MessageResponse, ResponseChannel};
 use actix::{Actor, Message};
 use borsh::{BorshDeserialize, BorshSerialize};
