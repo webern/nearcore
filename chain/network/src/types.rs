@@ -506,6 +506,7 @@ impl Message for GetPeerId {
 #[derive(MessageResponse, Debug)]
 #[cfg_attr(feature = "test_features", derive(serde::Serialize))]
 pub struct GetPeerIdResult {
+    #[allow(unused)]
     pub(crate) peer_id: PeerId,
 }
 

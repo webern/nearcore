@@ -34,6 +34,7 @@ struct TestNode {
     client: Addr<ClientActor>,
     view_client: Addr<ViewClientActor>,
     genesis_hash: CryptoHash,
+    #[allow(unused)]
     arbiters: Vec<ArbiterHandle>,
 }
 
