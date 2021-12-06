@@ -5,7 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use hyper::body::HttpBody;
 use near_primitives::time::Clock;
 use num_rational::Rational;
@@ -465,10 +465,11 @@ impl Default for Config {
 
 impl Config {
     pub fn from_file(path: &Path) -> Result<Self> {
-        let mut file = File::open(path)?;
-        let mut content = String::new();
-        file.read_to_string(&mut content)?;
-        Ok(Config::from(content.as_str()))
+        let s = std::fs::read_to_string(path)
+            .with_context(|| format!("Failed to read config from {}", path.display()))?;
+        let config = serde_json::from_str(&s)
+            .with_context(|| format!("Failed to deserialize config from {}", path.display()))?;
+        Ok(config)
     }
 
     pub fn write_to_file(&self, path: &Path) {
@@ -823,20 +824,18 @@ pub fn init_configs(
     boot_nodes: Option<&str>,
     max_gas_burnt_view: Option<Gas>,
 ) -> Result<()> {
-    info!("creating directory at {:?}", dir);
-    fs::create_dir_all(dir).expect("Failed to create directory");
-    // Check if config already exists in home dir.
+    fs::create_dir_all(dir).with_context(|| anyhow!("Failed to create directory {:?}", dir))?;
 
+    // Check if config already exists in home dir.
     if dir.join(CONFIG_FILENAME).exists() {
         let config = Config::from_file(&dir.join(CONFIG_FILENAME))
-            .with_context(|| anyhow!("Failed to read config {:?}", &dir))?;
+            .with_context(|| anyhow!("Failed to read config {}", dir.display()))?;
         let file_path = dir.join(&config.genesis_file);
         let genesis = GenesisConfig::from_file(&file_path).with_context(move || {
-            anyhow!("Failed to read genesis config {:?}/{:?}", dir, config.genesis_file)
+            anyhow!("Failed to read genesis config {}/{}", dir.display(), config.genesis_file)
         })?;
-        return Err(anyhow!("Config is already downloaded: {} with chain-id = {}. Use 'cargo run -p neard -- unsafe_reset_all' to clear the folder.", 
-                file_path.display(), genesis.chain_id),
-        );
+        bail!("Config is already downloaded: {} with chain-id = {}. Use 'cargo run -p neard -- unsafe_reset_all' to clear the folder.",
+                file_path.display(), genesis.chain_id);
     }
 
     let mut config = Config::default();
@@ -864,7 +863,7 @@ pub fn init_configs(
     match chain_id.as_ref() {
         "mainnet" => {
             if test_seed.is_some() {
-                return Err(anyhow!("Test seed is not supported for MainNet"));
+                bail!("Test seed is not supported for MainNet");
             }
             config.telemetry.endpoints.push(MAINNET_TELEMETRY_URL.to_string());
             config.write_to_file(&dir.join(CONFIG_FILENAME));
@@ -882,7 +881,7 @@ pub fn init_configs(
         }
         "testnet" | "betanet" => {
             if test_seed.is_some() {
-                return Err(anyhow!("Test seed is not supported for official TestNet"));
+                bail!("Test seed is not supported for official TestNet");
             }
             config.telemetry.endpoints.push(NETWORK_TELEMETRY_URL.replace("{}", &chain_id));
             config.write_to_file(&dir.join(CONFIG_FILENAME));
