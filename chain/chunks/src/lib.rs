@@ -35,7 +35,6 @@ use near_primitives::types::{
 use near_primitives::utils::MaybeValidated;
 use near_primitives::validator_signer::ValidatorSigner;
 use near_primitives::version::ProtocolVersion;
-use near_primitives::version::PROTOCOL_VERSION;
 use near_primitives::{checked_feature, unwrap_or_return};
 
 use crate::chunk_cache::{EncodedChunksCache, EncodedChunksCacheEntry};
