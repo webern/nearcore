@@ -1,13 +1,15 @@
 use crate::peer::codec::Codec;
 use crate::peer::tracker::Tracker;
 use crate::peer::utils;
+use crate::private_actix::{
+    PeersRequest, RegisterPeer, RegisterPeerResponse, SendMessage, Unregister,
+};
 use crate::routing::edge::{Edge, PartialEdgeInfo};
 use crate::stats::metrics::{self, NetworkMetrics};
 use crate::types::{
     Handshake, HandshakeFailureReason, HandshakeV2, NetworkClientMessages, NetworkClientResponses,
     NetworkRequests, NetworkResponses, PeerManagerMessageRequest, PeerMessage, PeerRequest,
-    PeerResponse, PeersRequest, PeersResponse, RegisterPeer, RegisterPeerResponse, SendMessage,
-    Unregister,
+    PeerResponse, PeersResponse,
 };
 use crate::PeerManagerActor;
 use actix::{

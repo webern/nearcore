@@ -1,8 +1,9 @@
+use crate::private_actix::StopMsg;
+use crate::private_actix::ValidateEdgeList;
 use crate::routing::edge::{Edge, EdgeState};
 use crate::routing::edge_validator_actor::EdgeValidatorActor;
 use crate::routing::routing::{Graph, SAVE_PEERS_MAX_TIME};
 use crate::stats::metrics;
-use crate::types::{StopMsg, ValidateEdgeList};
 use actix::dev::MessageResponse;
 use actix::{
     Actor, ActorFuture, Addr, Context, ContextFutureSpawner, Handler, Message, Running,
