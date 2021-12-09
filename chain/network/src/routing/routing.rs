@@ -1,7 +1,6 @@
-use crate::routing::edge::{Edge, SimpleEdge};
+use crate::routing::edge::Edge;
 use crate::routing::route_back_cache::RouteBackCache;
 use crate::routing::utils::cache_to_hashmap;
-use actix::dev::MessageResponse;
 use lru::LruCache;
 use near_network_primitives::types::{PeerIdOrHash, Ping, Pong};
 use near_primitives::hash::CryptoHash;

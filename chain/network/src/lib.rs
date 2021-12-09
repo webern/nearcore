@@ -12,7 +12,7 @@ pub use near_network_primitives::types::PeerInfo;
 mod network_protocol;
 mod peer;
 mod peer_manager;
-pub mod private_actix;
+pub(crate) mod private_actix;
 pub mod routing;
 pub(crate) mod stats;
 pub mod test_utils;
