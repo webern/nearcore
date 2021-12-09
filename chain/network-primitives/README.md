@@ -21,7 +21,7 @@ Dependencies:
 - `PeerManagerActor` related `Actix` messages
 - Part of `borsh` serialized network messages exchanged between nodes.
 
-Those actors, their related messages, are considered private:
+Actors below, their related messages, are considered private:
 - `PeerActor`
 - `RoutingTableActor`
 - `EdgeValidatorActor`
