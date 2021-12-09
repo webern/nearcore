@@ -145,7 +145,7 @@ pub enum ProtocolFeature {
 /// This should be updated updating `PROTOCOL_VERSION` below.
 /// The change should be issued once all notes on `MAINNET` vote to use newer version,
 /// that is, we commit to using new version.
-pub const NETWORK_LAYER_PROTOCOL_VERSION: ProtocolVersion = 39;
+pub const OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION: ProtocolVersion = 39;
 
 /// Current latest stable version of the protocol on the chain layer.
 /// Some features (e. g. FixStorageUsage) require that there is at least one epoch with exactly

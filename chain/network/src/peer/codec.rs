@@ -117,7 +117,7 @@ mod test {
     use near_primitives::network::{AnnounceAccount, PeerId};
 
     use near_primitives::types::EpochId;
-    use near_primitives::version::{NETWORK_LAYER_PROTOCOL_VERSION, PROTOCOL_VERSION};
+    use near_primitives::version::{OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION, PROTOCOL_VERSION};
     use tokio_util::codec::{Decoder, Encoder};
 
     fn test_codec(msg: PeerMessage) {
@@ -133,7 +133,7 @@ mod test {
         let peer_info = PeerInfo::random();
         let fake_handshake = Handshake {
             protocol_version: PROTOCOL_VERSION,
-            oldest_supported_version: NETWORK_LAYER_PROTOCOL_VERSION,
+            oldest_supported_version: OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION,
             sender_peer_id: peer_info.id.clone(),
             target_peer_id: peer_info.id,
             sender_listen_port: None,
@@ -154,7 +154,7 @@ mod test {
         let peer_info = PeerInfo::random();
         let fake_handshake = HandshakeV2 {
             protocol_version: PROTOCOL_VERSION,
-            oldest_supported_version: NETWORK_LAYER_PROTOCOL_VERSION,
+            oldest_supported_version: OLDEST_BACKWARD_COMPATIBLE_PROTOCOL_VERSION,
             sender_peer_id: peer_info.id.clone(),
             target_peer_id: peer_info.id,
             sender_listen_port: None,
