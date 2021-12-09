@@ -129,49 +129,29 @@ This section describes different protocols of sending messages currently used in
 
 `Near` is build on `Actix`'s `actor` framework. (https://actix.rs/book/actix/sec-2-actor.html)
 Usually each actor runs on its own dedicated thread.
+Some, like `PeerActor` have one thread per each instance.
 Only messages implementing `actix::Message`, can be sent using between threads.
+Each actor has its own queue; Processing of messages happens asynchronously. 
 
 We should not leak implementation details into the spec.
 
-On example of such message is `PeersRequest` :
-```
-pub struct PeersRequest {}
-impl actix::Message for PeersRequest {
-    type Result = PeerRequestResult;
-}
-pub struct PeerRequestResult {
-    pub peers: Vec<PeerInfo>,
-}
-```
+Actix messages can be found by looking for `impl actix::Message`.
 
 ## 10.2 Messages sent through TCP
-Near is using `borsh` serialization to exchange messages between nodes (See https://borsh.io/).
-Only messages implementing `BorshSerialize`, `BorshDeserialize` can be sent.
 
-Here is an example of on such message:
-```rust
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct SyncData {
-    pub(crate) edges: Vec<Edge>,
-    pub(crate) accounts: Vec<AnnounceAccount>,
-}
-```
+Near is using `borsh` serialization to exchange messages between nodes (See https://borsh.io/).
+We should be careful when making changes to them. 
+We have to maintain backward compatibility.
+Only messages implementing `BorshSerialize`, `BorshDeserialize` can be sent.
+We also use `borsh` for database storage.
 
 ## 10.3 Messages sent/received through `chain/jsonrpc`
+
 Near runs a `json REST server`. (See `actix_web::HttpServer`).
 All messages sent and received must implement `serde::Serialize` and `serde::Deserialize`.
 
-`StreamerMessage` is a good example:
-```rust
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct StreamerMessage {
-    pub block: views::BlockView,
-    pub shards: Vec<IndexerShard>,
-    pub state_changes: views::StateChangesView,
-}
-```
-
 # 11. Code flow - routing a message
+
 This is the example of the message that is being sent between nodes (`RawRoutedMessage`) (https://github.com/near/nearcore/blob/fa8749dc60fe0de8e94c3046571731c622326e9f/chain/network-primitives/src/types.rs#L362)
 
 Each of these methods have a `target` - that is either the account_id or peer_id or hash (which seems to be used only for route back...).
@@ -194,6 +174,7 @@ All these messages are handled by `receive_client_message` in Peer. (`NetworkCli
 (that crates `PeerManagerActor` - that is passed as target to `network_recipent`).
 
 # 12. Database
+
 ### 12.1 Storage of deleted edges
 
 Everytime a group of peers becomes unreachable at the same time; We store edges belonging to
