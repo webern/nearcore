@@ -191,7 +191,7 @@ impl RoutingTableView {
         })
     }
 
-    pub fn remove_local_edges(&mut self, edges: &Vec<Edge>) {
+    pub fn remove_local_edges(&mut self, edges: &[Edge]) {
         for edge in edges.iter() {
             if let Some(other_peer) = edge.other(&self.my_peer_id) {
                 self.local_edges_info.remove(other_peer);
@@ -497,7 +497,7 @@ impl Graph {
             }
         }
 
-        self.compute_result(&mut routes, &distance)
+        self.compute_result(&routes, &distance)
     }
 
     fn compute_result(&self, routes: &[u128], distance: &[i32]) -> HashMap<PeerId, Vec<PeerId>> {
