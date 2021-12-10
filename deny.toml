@@ -21,6 +21,9 @@ skip = [
     { name = "humantime", version = "=2.1.0" },
     { name = "textwrap", version = "=0.12.1" },
 
+    # many crates (borsh, indexmap, cached, ...) use this older version
+    { name = "hashbrown", version = "=0.9.1" },
+
     # insta uses older version of console
     { name = "console", version = "=0.14.1" },
     # near-epoch-manager fixed the rand version to ensure protocol stability
