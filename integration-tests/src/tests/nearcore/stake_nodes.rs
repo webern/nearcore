@@ -7,8 +7,8 @@ use futures::{future, FutureExt};
 use near_primitives::num_rational::Rational;
 use rand::Rng;
 
-use integration_tests::genesis_helpers::genesis_hash;
-use integration_tests::test_helpers::heavy_test;
+use crate::genesis_helpers::genesis_hash;
+use crate::test_helpers::heavy_test;
 use near_actix_test_utils::run_actix;
 use near_chain_configs::Genesis;
 use near_client::{ClientActor, GetBlock, Query, Status, ViewClientActor};

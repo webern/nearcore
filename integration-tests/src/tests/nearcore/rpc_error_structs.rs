@@ -4,8 +4,8 @@ use actix::{Actor, System};
 use borsh::BorshSerialize;
 use futures::{future, FutureExt, TryFutureExt};
 
-use crate::node_cluster::NodeCluster;
-use integration_tests::genesis_helpers::genesis_block;
+use crate::genesis_helpers::genesis_block;
+use crate::tests::nearcore::node_cluster::NodeCluster;
 use near_actix_test_utils::spawn_interruptible;
 use near_client::GetBlock;
 use near_crypto::{InMemorySigner, KeyType};

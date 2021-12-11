@@ -20,8 +20,8 @@ use near_primitives::views::{
 use near_vm_errors::MethodResolveError;
 use nearcore::config::{NEAR_BASE, TESTING_INIT_BALANCE, TESTING_INIT_STAKE};
 
-use integration_tests::node::Node;
-use integration_tests::user::User;
+use crate::node::Node;
+use crate::user::User;
 use near_primitives::runtime::config::RuntimeConfig;
 use testlib::fees_utils::FeeHelper;
 use testlib::runtime_utils::{

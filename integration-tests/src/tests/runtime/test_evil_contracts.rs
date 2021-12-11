@@ -1,4 +1,4 @@
-use integration_tests::node::{Node, RuntimeNode};
+use crate::node::{Node, RuntimeNode};
 use near_primitives::errors::{ActionError, ActionErrorKind, ContractCallError};
 use near_primitives::serialize::to_base64;
 use near_primitives::views::FinalExecutionStatus;

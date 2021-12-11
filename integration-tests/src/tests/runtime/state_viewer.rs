@@ -1,6 +1,4 @@
-use integration_tests::runtime_utils::{
-    get_runtime_and_trie, get_test_trie_viewer, TEST_SHARD_UID,
-};
+use crate::runtime_utils::{get_runtime_and_trie, get_test_trie_viewer, TEST_SHARD_UID};
 use near_primitives::{
     account::Account,
     hash::hash as sha256,

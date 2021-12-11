@@ -4,7 +4,7 @@ use std::time::Duration;
 use actix::{Actor, System};
 use futures::{future, FutureExt};
 
-use integration_tests::test_helpers::heavy_test;
+use crate::test_helpers::heavy_test;
 use near_actix_test_utils::run_actix;
 use near_chain_configs::Genesis;
 use near_client::GetBlock;

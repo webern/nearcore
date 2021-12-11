@@ -1,7 +1,7 @@
+use crate::test_helpers::heavy_test;
 use actix::Addr;
 use actix_rt::ArbiterHandle;
 use futures::future;
-use integration_tests::test_helpers::heavy_test;
 use near_actix_test_utils::{run_actix, spawn_interruptible};
 use near_chain_configs::Genesis;
 use near_client::{ClientActor, ViewClientActor};

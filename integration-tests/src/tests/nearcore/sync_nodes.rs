@@ -5,8 +5,8 @@ use std::time::Duration;
 use actix::{Actor, Addr, System};
 use futures::{future, FutureExt};
 
-use integration_tests::genesis_helpers::genesis_block;
-use integration_tests::test_helpers::heavy_test;
+use crate::genesis_helpers::genesis_block;
+use crate::test_helpers::heavy_test;
 use near_actix_test_utils::run_actix;
 use near_chain::{Block, Chain};
 use near_chain_configs::Genesis;

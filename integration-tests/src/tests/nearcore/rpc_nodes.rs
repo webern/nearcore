@@ -6,7 +6,8 @@ use borsh::BorshSerialize;
 use futures::future::join_all;
 use futures::{future, FutureExt, TryFutureExt};
 
-use integration_tests::genesis_helpers::genesis_block;
+use crate::genesis_helpers::genesis_block;
+use crate::tests::nearcore::node_cluster::NodeCluster;
 use near_actix_test_utils::spawn_interruptible;
 use near_client::{GetBlock, GetExecutionOutcome, GetValidatorInfo};
 use near_crypto::{InMemorySigner, KeyType};
@@ -23,8 +24,6 @@ use near_primitives::types::{
 };
 use near_primitives::version::ProtocolVersion;
 use near_primitives::views::{ExecutionOutcomeView, ExecutionStatusView};
-
-use crate::node_cluster::NodeCluster;
 
 #[test]
 fn test_get_validator_info_rpc() {

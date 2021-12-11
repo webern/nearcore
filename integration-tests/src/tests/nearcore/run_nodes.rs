@@ -1,13 +1,12 @@
 use actix::{Actor, System};
 use futures::{future, FutureExt};
 
+use crate::tests::nearcore::node_cluster::NodeCluster;
 use near_actix_test_utils::spawn_interruptible;
 use near_client::GetBlock;
 use near_network::test_utils::WaitOrTimeoutActor;
 use near_primitives::types::{BlockHeightDelta, NumSeats, NumShards};
 use rand::{thread_rng, Rng};
-
-use crate::node_cluster::NodeCluster;
 
 fn run_heavy_nodes(
     num_shards: NumShards,

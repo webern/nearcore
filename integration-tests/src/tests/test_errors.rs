@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use integration_tests::node::{Node, ThreadNode};
+use crate::node::{Node, ThreadNode};
 use near_chain_configs::Genesis;
 use near_crypto::{InMemorySigner, KeyType};
 use near_logger_utils::init_integration_logger;
