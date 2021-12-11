@@ -71,9 +71,11 @@ overflow-checks = true
 overflow-checks = true
 
 [profile.dev]
+lto = false
 opt-level = 2
 
 [profile.test]
+lto = false
 opt-level = 2
 
 [profile.dev.package.hex]
