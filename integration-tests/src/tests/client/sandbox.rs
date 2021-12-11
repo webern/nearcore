@@ -21,7 +21,7 @@ fn test_setup() -> (TestEnv, InMemorySigner) {
     genesis.config.epoch_length = epoch_length;
     let mut env = TestEnv::builder(ChainGenesis::test())
         .runtime_adapters(vec![Arc::new(nearcore::NightshadeRuntime::test(
-            Path::new("."),
+            Path::new("../../../.."),
             create_test_store(),
             &genesis,
         )) as Arc<dyn RuntimeAdapter>])

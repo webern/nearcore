@@ -31,7 +31,7 @@ pub fn create_nightshade_runtimes(genesis: &Genesis, n: usize) -> Vec<Arc<dyn Ru
     (0..n)
         .map(|_| {
             Arc::new(nearcore::NightshadeRuntime::test(
-                Path::new("."),
+                Path::new("../../../.."),
                 create_test_store(),
                 genesis,
             )) as Arc<dyn RuntimeAdapter>
