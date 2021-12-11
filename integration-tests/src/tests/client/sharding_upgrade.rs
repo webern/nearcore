@@ -1,6 +1,8 @@
 use borsh::BorshSerialize;
 
-use crate::process_blocks::{create_nightshade_runtimes, set_block_protocol_version};
+use crate::tests::client::process_blocks::{
+    create_nightshade_runtimes, set_block_protocol_version,
+};
 use near_chain::{ChainGenesis, Provenance};
 use near_chain_configs::Genesis;
 use near_client::test_utils::TestEnv;

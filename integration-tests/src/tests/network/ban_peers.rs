@@ -1,4 +1,4 @@
-pub use crate::runner::*;
+pub use crate::tests::network::runner::*;
 use std::time::Duration;
 
 /// Check we don't try to connect to a banned peer and we don't accept

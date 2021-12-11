@@ -70,13 +70,13 @@ fn make_peer_manager(seed: &str, port: u16, boot_nodes: Vec<(&str, u16)>) -> Pee
 /// The test is stopped gracefully (no panic) if some node other than node0 panicked.
 ///
 /// This was fixed in (#1954). To reproduce this bug:
-/// ```
+/// ```ignore
 /// git checkout 1f5eab0344235960dfcf767d143fb90a02c7c567
 /// cargo test --package near-network --test stress_network stress_test -- --exact --ignored
 /// ```
 ///
 /// Logs observed on failing commit:
-/// ```
+/// ```ignore
 /// thread 'stress_test' panicked at 'called `Result::unwrap()` on an `Err` value: Os { code: 107, kind: NotConnected, message: "Transport endpoint is not connected" }', src/libcore/result.rs:1165:5
 /// thread 'stress_test' panicked at 'Decoder error: Os { code: 104, kind: ConnectionReset, message: "Connection reset by peer" }', src/libcore/result.rs:1165:5
 /// ```

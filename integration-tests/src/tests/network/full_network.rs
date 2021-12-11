@@ -1,4 +1,4 @@
-pub use crate::runner::*;
+pub use crate::tests::network::runner::*;
 use std::cmp::min;
 
 /// Check that a node is able to connect to the network, even if the number

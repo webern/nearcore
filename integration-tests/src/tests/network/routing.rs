@@ -1,4 +1,4 @@
-use crate::runner::*;
+use crate::tests::network::runner::*;
 
 #[test]
 fn simple() {
